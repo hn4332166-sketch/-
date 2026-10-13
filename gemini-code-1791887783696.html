@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a0505">
+<title>奧特曼大戰怪獸 ｜ 光之巨人拉鋸戰</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #1a0505;
+  --panel: rgba(40, 15, 15, 0.85);
+  --ultra-silver: #e0e8ff;
+  --ultra-red: #ff2222;
+  --ultra-glow: #0088ff;
+  --monster-green: #33cc66;
+  --monster-glow: #00ff44;
+  --gold: #ffe600;
+  --text: #ffffff;
+  --muted: #b89393;
+}
+
+* { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+body {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background 0.5s ease;
+}
+
+.app {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: env(safe-area-inset-top, 10px) 14px env(safe-area-inset-bottom, 14px) 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+header {
+  text-align: center;
+  padding: 2px 0;
+}
+
+.eyebrow {
+  color: var(--ultra-red);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--ultra-red);
+}
+
+h1 {
+  margin: 2px 0;
+  font-size: 20px;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, var(--ultra-red), var(--gold), var(--monster-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 奧特曼與怪獸抬頭顯示 */
+.scores {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.side {
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1.5px solid rgba(255, 34, 34, 0.4);
+  box-shadow: 0 4px 15px rgba(255, 34, 34, 0.2);
+  transition: all 0.3s ease;
+}
+
+.side.monster-side {
+  text-align: right;
+  border-color: rgba(51, 204, 102, 0.4);
+  box-shadow: 0 4px 15px rgba(51, 204, 102, 0.2);
+}
+
+.side-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.monster-side .side-header { justify-content: flex-end; }
+
+.emotion-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 2px;
+  display: inline-block;
+  font-weight: 800;
+}
+
+.percent {
+  font-size: 26px;
+  font-weight: 1000;
+  line-height: 1.1;
+  font-family: monospace;
+}
+
+.ultra-side .percent { color: var(--ultra-red); text-shadow: 0 0 12px var(--ultra-red); }
+.monster-side .percent { color: var(--monster-green); text-shadow: 0 0 12px var(--monster-green); }
+
+.vs-badge {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--gold);
+  background: rgba(0,0,0,0.6);
+  padding: 4px 6px;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  box-shadow: 0 0 10px var(--gold);
+}
+
+/* 戰場 Canvas 區域 */
+.arena-container {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  background: rgba(15, 5, 5, 0.95);
+  box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
+  overflow: hidden;
+  position: relative;
+  margin: 4px 0;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 145px;
+}
+
+.directions {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* 狀態提示欄 */
+.status {
+  text-align: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--gold);
+  border-radius: 12px;
+  background: rgba(40, 30, 10, 0.85);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(255, 230, 0, 0.3);
+  margin: 4px 0;
+  line-height: 1.3;
+}
+
+.control-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.moves {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.move {
+  height: 68px;
+  background: linear-gradient(145deg, #3d1212, #1f0808);
+  border: 1px solid rgba(255, 34, 34, 0.3);
+  border-radius: 14px;
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: all 0.12s ease;
+}
+
+.move .glyph { font-size: 24px; }
+.move .label { font-size: 10px; font-weight: 900; color: var(--gold); }
+
+.move.active {
+  border-color: var(--ultra-red);
+  background: linear-gradient(145deg, #571515, #2b0606);
+  box-shadow: 0 0 20px var(--ultra-red);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.move:active { transform: scale(0.95); }
+
+.actions {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+}
+
+.action {
+  height: 46px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.action.primary {
+  background: linear-gradient(135deg, var(--ultra-red), var(--gold));
+  color: #000000;
+  border: none;
+  font-size: 14px;
+  box-shadow: 0 0 20px rgba(255, 34, 34, 0.5);
+}
+
+.action:active { transform: scale(0.97); }
+
+/* 漂浮表情包 */
+.emoji-pop {
+  position: absolute;
+  font-size: 32px;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+  z-index: 5;
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(0.5); }
+  50% { transform: translate(-50%, -30px) scale(1.4); }
+  100% { opacity: 0; transform: translate(-50%, -60px) scale(1); }
+}
+
+/* 結算畫面 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  place-items: center;
+  padding: 20px;
+  background: rgba(26, 5, 5, 0.95);
+  backdrop-filter: blur(12px);
+}
+
+.overlay.show { display: grid; }
+
+.result-card {
+  width: min(380px, 100%);
+  padding: 30px 20px;
+  text-align: center;
+  border: 2px solid var(--gold);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #451212, #1a0505);
+  box-shadow: 0 0 60px rgba(255, 230, 0, 0.4);
+}
+
+.result-card h2 { margin: 12px 0; font-size: 36px; letter-spacing: 2px; }
+.result-card p { color: var(--muted); margin-bottom: 20px; font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<main class="app" id="app">
+  <header>
+    <div class="eyebrow">ULTRAMAN ULTIMATE BATTLE</div>
+    <h1>奧特曼大戰宇宙怪獸</h1>
+  </header>
+
+  <section class="scores">
+    <div class="side ultra-side">
+      <div class="side-header">🌟 光之巨人 [PLAYER]</div>
+      <div class="percent" id="ultraScore">50%</div>
+      <div class="emotion-tag" id="ultraEmotion">⚡ 斯派修姆蓄力</div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="side monster-side">
+      <div class="side-header">[AI] 宇宙怪獸 👾</div>
+      <div class="percent" id="monsterScore">50%</div>
+      <div class="emotion-tag" id="monsterEmotion">🔥 破壞光波蓄能</div>
+    </div>
+  </section>
+
+  <div class="arena-container" id="arena">
+    <canvas id="canvas"></canvas>
+  </div>
+  <div class="directions"><span>◀ 光線絕招推進</span><span>怪獸毀壞反撲 ▶</span></div>
+
+  <div class="status" id="status">
+    發動！選擇必殺戰術，將宇宙怪獸徹底消滅！
+  </div>
+
+  <div class="control-zone">
+    <section class="moves">
+      <button class="move active" data-move="rock">
+        <span class="glyph">☄️</span>
+        <span class="label">奥特手刀</span>
+      </button>
+      <button class="move" data-move="scissors">
+        <span class="glyph">🌟</span>
+        <span class="label">斯派修姆光線</span>
+      </button>
+      <button class="move" data-move="paper">
+        <span class="glyph">🛡️</span>
+        <span class="label">奧特防護罩</span>
+      </button>
+    </section>
+
+    <div class="actions">
+      <button class="action primary" id="fight">⚡ 釋放必殺光線！</button>
+      <button class="action" id="reset">↻ 重置戰局</button>
+    </div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="result-card">
+    <div style="font-size: 50px;" id="resultEmoji">🏆</div>
+    <h2 id="resultTitle" style="color: var(--gold);">奧特曼大獲全勝！</h2>
+    <p id="resultText">斯派修姆光線貫穿怪獸，地球再度迎來和平！</p>
+    <button class="action primary" id="again" style="width: 100%; height: 48px;">再次保衛地球 ↻</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  function playUltraSound(isBeam = false) {
+    initAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = isBeam ? "sine" : "sawtooth";
+    osc.frequency.setValueAtTime(isBeam ? 880 : 300, now);
+    osc.frequency.exponentialRampToValueAtTime(isBeam ? 440 : 100, now + 0.3);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+
+  const $ = id => document.getElementById(id);
+  const canvas = $("canvas");
+  const ctx = canvas.getContext("2d");
+  const buttons = [...document.querySelectorAll(".move")];
+
+  const MOVES = ["rock", "scissors", "paper"];
+  const BEATS = { rock: "scissors", scissors: "paper", paper: "rock" };
+
+  const ULTRA_EMOTIONS = [
+    { threshold: 90, text: "✨ 光能完全解放 (必殺狀態)", color: "#0088ff" },
+    { threshold: 70, text: "⚡ 彩色計時器閃爍 (能量超頻)", color: "#ff2222" },
+    { threshold: 50, text: "🌟 光之巨人對峙 (穩健防守)", color: "#e0e8ff" },
+    { threshold: 30, text: "⚠️ 遭到怪獸光波壓制 (能源告急)", color: "#b89393" },
+    { threshold: 0,  text: "💫 計時器熄滅 (能量耗盡)", color: "#663333" }
+  ];
+
+  const MONSTER_EMOTIONS = [
+    { threshold: 90, text: "🔥 毀滅怪獸降臨 (城市破壞)", color: "#33cc66" },
+    { threshold: 70, text: "👾 狂暴破壞光波 (氣勢萬鈞)", color: "#00ff44" },
+    { threshold: 50, text: "🐲 怪獸蓄力警戒 (咆哮中)", color: "#88cc99" },
+    { threshold: 30, text: "📉 受到光線灼燒 (節節敗退)", color: "#b89393" },
+    { threshold: 0,  text: "💥 爆炸化為灰燼 (被消滅)", color: "#332222" }
+  ];
+
+  const state = {
+    ultra: 50,
+    monster: 50,
+    selected: "rock",
+    round: 0,
+    ended: false,
+    ballPos: 0.5,
+    particles: [],
+    flash: 0,
+    winner: null
+  };
+
+  let W = 400, H = 145, DPR = 1, animId = 0;
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    W = Math.max(100, rect.width);
+    H = Math.max(80, rect.height);
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+
+  function chooseMove(move) {
+    if (!MOVES.includes(move)) return;
+    state.selected = move;
+    buttons.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.move === move);
+    });
+  }
+
+  function getEmotion(score, emotionArray) {
+    return emotionArray.find(e => score >= e.threshold) || emotionArray[emotionArray.length - 1];
+  }
+
+  function updateUI() {
+    $("ultraScore").textContent = state.ultra + "%";
+    $("monsterScore").textContent = state.monster + "%";
+
+    $("ultraScore").style.fontSize = (22 + state.ultra * 0.24) + "px";
+    $("monsterScore").style.fontSize = (22 + state.monster * 0.24) + "px";
+
+    const uE = getEmotion(state.ultra, ULTRA_EMOTIONS);
+    const mE = getEmotion(state.monster, MONSTER_EMOTIONS);
+
+    $("ultraEmotion").textContent = uE.text;
+    $("ultraEmotion").style.color = uE.color;
+
+    $("monsterEmotion").textContent = mE.text;
+    $("monsterEmotion").style.color = mE.color;
+  }
+
+  function spawnEmojiPop(x, y, emoji) {
+    const el = document.createElement("div");
+    el.className = "emoji-pop";
+    el.textContent = emoji;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    $("app").appendChild(el);
+    setTimeout(() => el.remove(), 800);
+  }
+
+  function spawnParticles(x, y, color, count = 25) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 5;
+      state.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 20 + Math.random() * 25,
+        maxLife: 45,
+        size: 2 + Math.random() * 3,
+        color
+      });
+    }
+    if (state.particles.length > 200) state.particles.splice(0, state.particles.length - 200);
+  }
+
+  function playRound() {
+    if (state.ended) return;
+
+    state.round++;
+    const monsterMove = MOVES[Math.floor(Math.random() * MOVES.length)];
+    const ultraMove = state.selected;
+    const status = $("status");
+    const arenaRect = $("arena").getBoundingClientRect();
+    const appRect = $("app").getBoundingClientRect();
+    const midX = arenaRect.left - appRect.left + (arenaRect.width * state.ballPos);
+    const midY = arenaRect.top - appRect.top + arenaRect.height / 2;
+
+    if (ultraMove === monsterMove) {
+      status.textContent = `第 ${state.round} 回合｜光線與破壞波正面互撞！能量激起巨大的衝擊波！`;
+      playUltraSound(false);
+      spawnEmojiPop(midX, midY, "💥");
+      spawnParticles(W * state.ballPos, H / 2, "#ffe600", 20);
+    } else if (BEATS[ultraMove] === monsterMove) {
+      state.ultra = Math.min(100, state.ultra + 8);
+      state.monster = 100 - state.ultra;
+      status.textContent = `第 ${state.round} 回合｜奧特曼絕招命中！光之力量推進 +8%！`;
+      playUltraSound(true);
+      spawnEmojiPop(midX, midY, "🌟");
+      spawnParticles(W * state.ballPos, H / 2, "#0088ff", 35);
+    } else {
+      state.monster = Math.min(100, state.monster + 8);
+      state.ultra = 100 - state.monster;
+      status.textContent = `第 ${state.round} 回合｜宇宙怪獸強力反擊！防線遭到破壞 +8%！`;
+      playUltraSound(false);
+      spawnEmojiPop(midX, midY, "🔥");
+      spawnParticles(W * state.ballPos, H / 2, "#33cc66", 35);
+    }
+
+    state.flash = 1;
+    updateUI();
+
+    if (state.ultra >= 100 || state.monster >= 100) {
+      finishMatch(state.ultra >= 100 ? "ultra" : "monster");
+    }
+  }
+
+  function finishMatch(winner) {
+    state.ended = true;
+    state.winner = winner;
+    const ultraWon = winner === "ultra";
+
+    $("resultEmoji").textContent = ultraWon ? "👑🌟" : "👑🔥";
+    $("resultTitle").textContent = ultraWon ? "奧特曼光之勝利！" : "宇宙怪獸毀滅地球！";
+    $("resultTitle").style.color = ultraWon ? "var(--ultra-red)" : "var(--monster-green)";
+    $("resultText").textContent = ultraWon
+      ? "奧特曼釋放 100% 斯派修姆光線，將宇宙怪獸徹底消滅！"
+      : "宇宙怪獸突破防線，光之巨人能源耗盡，地球陷入危機！";
+
+    $("status").textContent = ultraWon ? "【終局】光之勝利！" : "【終局】怪獸毀滅！";
+    $("overlay").classList.add("show");
+    spawnParticles(W / 2, H / 2, ultraWon ? "#0088ff" : "#33cc66", 80);
+  }
+
+  function resetGame() {
+    state.ultra = 50;
+    state.monster = 50;
+    state.round = 0;
+    state.ended = false;
+    state.ballPos = 0.5;
+    state.particles = [];
+    state.flash = 0;
+    state.winner = null;
+
+    $("status").textContent = "發動！選擇必殺戰術，將宇宙怪獸徹底消滅！";
+    $("overlay").classList.remove("show");
+    chooseMove("rock");
+    updateUI();
+  }
+
+  function getSPoint(t) {
+    return {
+      x: 20 + t * (W - 40),
+      y: H / 2 + Math.sin(t * Math.PI * 2) * (H * 0.22)
+    };
+  }
+
+  function drawTrackSegment(from, tTo, color, width, glow = 0) {
+    ctx.beginPath();
+    let first = true;
+    for (let i = 0; i <= 80; i++) {
+      const t = from + (tTo - from) * (i / 80);
+      const p = getSPoint(t);
+      if (first) { ctx.moveTo(p.x, p.y); first = false; }
+      else { ctx.lineTo(p.x, p.y); }
+    }
+    ctx.lineCap = "round";
+    ctx.lineWidth = width;
+    ctx.strokeStyle = color;
+    if (glow > 0) { ctx.shadowColor = color; ctx.shadowBlur = glow; }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  function renderFrame() {
+    ctx.clearRect(0, 0, W, H);
+
+    drawTrackSegment(0, 1, "#3d1212", 12);
+
+    const split = state.ultra / 100;
+    drawTrackSegment(0, split, "#0088ff", 5, 10);
+    drawTrackSegment(split, 1, "#33cc66", 5, 10);
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const uFontSize = 20 + state.ultra * 0.4;
+    ctx.font = `1000 ${uFontSize}px sans-serif`;
+    ctx.fillStyle = `rgba(0, 136, 255, ${0.25 + state.ultra / 150})`;
+    ctx.shadowColor = "#0088ff";
+    ctx.shadowBlur = state.ultra * 0.25;
+    ctx.fillText("奧", W * 0.18, H * 0.32);
+    ctx.shadowBlur = 0;
+
+    const mFontSize = 20 + state.monster * 0.4;
+    ctx.font = `1000 ${mFontSize}px sans-serif`;
+    ctx.fillStyle = `rgba(51, 204, 102, ${0.25 + state.monster / 150})`;
+    ctx.shadowColor = "#33cc66";
+    ctx.shadowBlur = state.monster * 0.25;
+    ctx.fillText("怪", W * 0.82, H * 0.68);
+    ctx.shadowBlur = 0;
+
+    const targetBall = 0.12 + (state.ultra / 100) * 0.76;
+    state.ballPos += (targetBall - state.ballPos) * 0.12;
+    const pt = getSPoint(state.ballPos);
+    const r = 12 + state.flash * 4;
+
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = state.ultra >= state.monster ? "#0088ff" : "#33cc66";
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    state.particles = state.particles.filter(p => p.life > 0);
+    for (const p of state.particles) {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+    }
+    ctx.globalAlpha = 1;
+    state.flash *= 0.82;
+
+    animId = requestAnimationFrame(renderFrame);
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => chooseMove(btn.dataset.move));
+  });
+
+  $("fight").addEventListener("click", playRound);
+  $("reset").addEventListener("click", resetGame);
+  $("again").addEventListener("click", resetGame);
+
+  window.addEventListener("resize", resizeCanvas, { passive: true });
+  resizeCanvas();
+  updateUI();
+  if (!animId) animId = requestAnimationFrame(renderFrame);
+})();
+</script>
+</body>
+</html>
